@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "customer": {
+      "title": "Customer",
+      "description": "A customer in the loyalty system",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "cpf": { "type": "string" },
+        "pointsBalance": { "type": "number" },
+        "cashbackBalance": { "type": "number" },
+        "birthDate": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["name", "phone", "pointsBalance", "cashbackBalance", "createdAt"]
+    },
+    "transaction": {
+      "title": "Transaction",
+      "description": "Points or cashback transaction",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "type": { "type": "string", "enum": ["earn_points", "redeem_points", "earn_cashback", "redeem_cashback", "expired"] },
+        "amount": { "type": "number" },
+        "source": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["customerId", "type", "amount", "createdAt"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Store settings",
+      "type": "object",
+      "properties": {
+        "blingClientId": { "type": "string" },
+        "blingClientSecret": { "type": "string" },
+        "birthdayMessage": { "type": "string" },
+        "pointsMessage": { "type": "string" },
+        "autoSendWhatsapp": { "type": "boolean" },
+        "pointsThreshold": { "type": "number" },
+        "thresholdMessage": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "customers/{customerId}": {
+      "schema": "customer",
+      "description": "Customers list"
+    },
+    "transactions/{transactionId}": {
+      "schema": "transaction",
+      "description": "Transaction logs"
+    },
+    "settings/store": {
+      "schema": "settings",
+      "description": "Global store settings"
+    }
+  }
+}

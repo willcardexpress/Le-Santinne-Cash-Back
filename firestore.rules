@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read, write: if false; }
+    
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Simplification for admin shop owners for now: 
+    // In a real multi-tenant or multi-staff setup, we'd check an /admins/{uid} doc
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'funilsites@gmail.com'; }
+
+    match /customers/{customerId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidId(customerId);
+      allow update: if isAdmin() && isValidId(customerId);
+      allow delete: if isAdmin() && isValidId(customerId);
+    }
+    
+    match /transactions/{transactionId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidId(transactionId);
+      allow update: if isAdmin() && isValidId(transactionId);
+      allow delete: if isAdmin() && isValidId(transactionId);
+    }
+
+    match /settings/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidId(docId);
+      allow update: if isAdmin() && isValidId(docId);
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /public_balances/{docId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
