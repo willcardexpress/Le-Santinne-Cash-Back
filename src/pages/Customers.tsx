@@ -42,15 +42,17 @@ export default function Customers() {
     }
     setIsAdding(true);
     try {
-      await addDoc(collection(db, "customers"), {
+      const cleanCpf = newCustomer.cpf.replace(/\D/g, '');
+      await setDoc(doc(db, "customers", cleanCpf), {
         ...newCustomer,
+        cpf: cleanCpf,
         pointsBalance: 0,
         cashbackBalance: 0,
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
 
-      await setDoc(doc(db, "public_balances", newCustomer.cpf.replace(/\D/g, '')), {
+      await setDoc(doc(db, "public_balances", cleanCpf), {
         name: newCustomer.name,
         points: 0,
         cashback: 0,

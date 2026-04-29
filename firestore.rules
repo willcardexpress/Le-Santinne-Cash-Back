@@ -8,13 +8,41 @@ service cloud.firestore {
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     
-    // Simplification for admin shop owners for now: 
-    // In a real multi-tenant or multi-staff setup, we'd check an /admins/{uid} doc
-    function isAdmin() { return isSignedIn() && request.auth.token.email == 'funilsites@gmail.com'; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == 'funilsites@gmail.com' ||
+        request.auth.token.email == 'estudiokasar@gmail.com' ||
+        request.auth.uid == 'pZ14BRaUndVhBGUH3iTXZMBLHm' ||
+        request.auth.uid == 'pZ14BRaUndVhBGUH3iTXZMBLHmS2' ||
+        request.auth.uid == 'bDFXkFV9YKPmVrroTqBJVvnhnNy1'
+      ); 
+    }
+
+    match /cashback_signups/{signupId} {
+      allow create: if !exists(/databases/$(database)/documents/cashback_signups/$(signupId));
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /polls/{pollId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(pollId);
+    }
+
+    match /vote_checks/{checkId} {
+      allow create: if !exists(/databases/$(database)/documents/vote_checks/$(checkId)) && isValidId(checkId);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin() && isValidId(voteId);
+    }
 
     match /customers/{customerId} {
       allow read: if isAdmin();
-      allow create: if isAdmin() && isValidId(customerId);
+      allow create: if (isAdmin() && isValidId(customerId)) || 
+                       (isValidId(customerId) && incoming().pointsBalance == 0 && incoming().cashbackBalance == 0);
       allow update: if isAdmin() && isValidId(customerId);
       allow delete: if isAdmin() && isValidId(customerId);
     }
@@ -35,7 +63,7 @@ service cloud.firestore {
 
     match /public_balances/{docId} {
       allow read: if true;
-      allow create: if isAdmin();
+      allow create: if isAdmin() || (incoming().points == 0 && incoming().cashback == 0);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
