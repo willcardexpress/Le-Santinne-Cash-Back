@@ -99,6 +99,23 @@ export default function SettingsPage() {
         console.error("Erro na API pública", e);
       }
 
+      // 1.5 Tentar via WooCommerce se falhou a do shopify
+      if (!success) {
+        try {
+          const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=1`;
+          const proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+          const resWc = await fetch(proxiedWcUrl);
+          if (resWc.ok) {
+            const dataWc = await resWc.json();
+            if (Array.isArray(dataWc)) {
+              success = true;
+            }
+          }
+        } catch (e) {
+          console.error("Erro no WooCommerce", e);
+        }
+      }
+
       // 2. Tentar via GraphQL se tiver token e falhou a publica
       if (!success && settings.shopifyAccessToken) {
         const query = `{ products(first: 1) { edges { node { id title } } } }`;
@@ -255,8 +272,8 @@ export default function SettingsPage() {
 
       <Card className="rounded-xl border border-border shadow-sm">
         <CardHeader className="border-b border-border bg-neutral-50/50">
-          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Integração Shopify (Para Perfumes/Quiz)</CardTitle>
-          <CardDescription className="text-xs">Configure o domínio do Shopify para buscar os perfumes. O Token é opcional.</CardDescription>
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Integração da Loja (Shopify/WooCommerce)</CardTitle>
+          <CardDescription className="text-xs">Configure o domínio da sua loja para puxar seus perfumes no Quiz.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
            <div className="space-y-2">
@@ -284,7 +301,7 @@ export default function SettingsPage() {
         <CardFooter className="bg-neutral-50/50 border-t border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <Button variant="secondary" onClick={testShopifyConnection} disabled={testingShopify} className="w-full sm:w-auto">
-              {testingShopify ? "Testando..." : "Testar Conexão Shopify"}
+              {testingShopify ? "Testando..." : "Testar Conexão Shopify / WooCommerce"}
             </Button>
             <Dialog>
               <DialogTrigger className={buttonVariants({ variant: "outline", className: "border-primary text-primary hover:bg-primary/5 w-full sm:w-auto" })}>
@@ -292,9 +309,9 @@ export default function SettingsPage() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl">
               <DialogHeader>
-                <DialogTitle>Incorporar Quiz na Shopify</DialogTitle>
+                <DialogTitle>Incorporar Quiz na sua Loja</DialogTitle>
                 <DialogDescription>
-                  Copie o código abaixo e cole em uma "Página" ou num bloco de "Liquid/HTML Personalizado" na sua loja Shopify.
+                  Copie o código abaixo e cole em uma "Página" ou bloco de "HTML Personalizado" no construtor da sua loja.
                 </DialogDescription>
               </DialogHeader>
               <div className="bg-neutral-900 rounded-lg p-4 relative mt-2 group">

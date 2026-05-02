@@ -246,6 +246,41 @@ export default function PerfumeQuiz() {
           console.error("Error fetching public products.json", e);
         }
 
+        // Fallback to WooCommerce if productsList is still empty
+        if (productsList.length === 0) {
+          try {
+            const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=100`;
+            const proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+            const resWc = await fetch(proxiedWcUrl);
+            if (resWc.ok) {
+              const dataWc = await resWc.json();
+              if (Array.isArray(dataWc)) {
+                productsList = dataWc.map((p: any) => {
+                  // extract tags from categories, plus description text
+                  const catNames = p.categories ? p.categories.map((c:any) => c.name) : [];
+                  const textForTags = (p.description + " " + p.short_description).toLowerCase();
+                  
+                  // Basic tags from categories
+                  let tags = [...catNames];
+                  
+                  return {
+                    id: p.id,
+                    title: p.name,
+                    image: p.images && p.images.length > 0 ? p.images[0].src : null,
+                    price: p.prices && p.prices.price ? (parseInt(p.prices.price) / (10 ** p.prices.currency_minor_unit)) : 0,
+                    link: p.permalink,
+                    tags: tags,
+                    fullText: textForTags // We text match here later since tags might be empty
+                  };
+                });
+                console.log("WooCommerce Fetch Result:", productsList.length, "products");
+              }
+            }
+          } catch (e) {
+            console.error("Error fetching WooCommerce", e);
+          }
+        }
+
         // Fallback to GraphQL if productsList is still empty and token exists
         if (productsList.length === 0 && shopifyConfig.token) {
           const query = `
@@ -324,9 +359,13 @@ export default function PerfumeQuiz() {
       const scoredProducts = productsList.map(p => {
         let score = 0;
         const pTags = Array.isArray(p.tags) ? p.tags.map((t:string) => normalizeStr(t)) : [];
+        const fullTextStr = p.fullText ? normalizeStr(p.fullText) : "";
         
         selectedTags.forEach(st => {
-          if (pTags.some((pt:string) => pt.includes(st) || st.includes(pt))) {
+          if (
+            pTags.some((pt:string) => pt.includes(st) || st.includes(pt)) ||
+            fullTextStr.includes(st)
+          ) {
             score++;
           }
         });
