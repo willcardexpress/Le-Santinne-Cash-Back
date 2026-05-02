@@ -218,10 +218,13 @@ export default function PerfumeQuiz() {
       let productsList: any[] = [];
 
       if (shopifyConfig.domain && shopifyConfig.token) {
+        // Normalize domain just in case user pasted https://
+        const cleanDomain = shopifyConfig.domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        
         // Fetch from Shopify
         const query = `
           {
-            products(first: 50, query: "status:active") {
+            products(first: 250, query: "status:active") {
               edges {
                 node {
                   id
@@ -247,7 +250,7 @@ export default function PerfumeQuiz() {
           }
         `;
         
-        const res = await fetch(`https://${shopifyConfig.domain}/api/2024-01/graphql.json`, {
+        const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -257,6 +260,7 @@ export default function PerfumeQuiz() {
         });
         
         const data = await res.json();
+        console.log("Shopify Fetch Result:", data); // Add for debugging
         if (data?.data?.products?.edges) {
           productsList = data.data.products.edges.map((e: any) => {
             const p = e.node;
@@ -265,8 +269,8 @@ export default function PerfumeQuiz() {
               title: p.title,
               image: p.images?.edges[0]?.node?.url,
               price: p.priceRange?.minVariantPrice?.amount,
-              link: p.onlineStoreUrl || `https://${shopifyConfig.domain}/products/${p.handle}`,
-              tags: p.tags.map((t: string) => t.toLowerCase())
+              link: p.onlineStoreUrl || `https://${cleanDomain}/products/${p.handle}`,
+              tags: p.tags || []
             };
           });
         }
@@ -274,19 +278,24 @@ export default function PerfumeQuiz() {
 
       if (productsList.length === 0) {
         // Use Mock if no shopify config or empty results
+        console.log("No Shopify products found, using mock data.");
         productsList = mockPerfumes;
       }
 
       // Recommend System based on tags
+      const normalizeStr = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
       // Gather all tags selected
       const selectedTags = Object.values(finalAnswers)
         .flatMap((ans: any) => Array.isArray(ans) ? ans.map(a => a?.tag) : ans?.tag)
-        .filter(Boolean) as string[];
+        .filter(Boolean)
+        .map(t => normalizeStr(t as string));
 
       // Score products
       const scoredProducts = productsList.map(p => {
         let score = 0;
-        const pTags = Array.isArray(p.tags) ? p.tags.map((t:string) => t.toLowerCase()) : [];
+        const pTags = Array.isArray(p.tags) ? p.tags.map((t:string) => normalizeStr(t)) : [];
+        
         selectedTags.forEach(st => {
           if (pTags.some((pt:string) => pt.includes(st) || st.includes(pt))) {
             score++;
