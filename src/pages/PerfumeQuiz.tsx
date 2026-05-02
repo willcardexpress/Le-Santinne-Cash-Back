@@ -223,7 +223,11 @@ export default function PerfumeQuiz() {
         
         try {
           // Attempt using public products.json API first because it doesn't require auth
-          const res = await fetch(`https://${cleanDomain}/products.json?limit=250`);
+          // Using a proxy to avoid CORS issues from the browser
+          const targetUrl = `https://${cleanDomain}/products.json?limit=250`;
+          const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          
+          const res = await fetch(proxiedUrl);
           if (res.ok) {
             const data = await res.json();
             if (data?.products) {
@@ -233,7 +237,7 @@ export default function PerfumeQuiz() {
                 image: p.images && p.images.length > 0 ? p.images[0].src : null,
                 price: p.variants && p.variants.length > 0 ? p.variants[0].price : 0,
                 link: `https://${cleanDomain}/products/${p.handle}`,
-                tags: p.tags || []
+                tags: p.tags ? (typeof p.tags === 'string' ? p.tags.split(',').map((t: string) => t.trim()) : p.tags) : []
               }));
               console.log("Shopify public Fetch Result:", productsList.length, "products");
             }
@@ -304,9 +308,7 @@ export default function PerfumeQuiz() {
       }
 
       if (productsList.length === 0) {
-        // Use Mock if no shopify config or empty results
-        console.log("No Shopify products found, using mock data.");
-        productsList = mockPerfumes;
+        console.log("No Shopify products found.");
       }
 
       // Recommend System based on tags
@@ -335,12 +337,16 @@ export default function PerfumeQuiz() {
       scoredProducts.sort((a, b) => b.score - a.score);
       
       // Get top 4-6
-      const results = scoredProducts.slice(0, 6);
-      setPerfumes(results.length > 0 ? results : mockPerfumes.slice(0, 4));
+      // Optionally filter by score > 0 if you only want matches, but to avoid empty results we return top 6 anyway
+      // since the site might not have perfectly tagged perfumes.
+      const matchResults = scoredProducts.filter(p => p.score > 0);
+      const results = matchResults.length > 0 ? matchResults.slice(0, 6) : scoredProducts.slice(0, 6);
+      
+      setPerfumes(results);
 
     } catch (err) {
       console.error(err);
-      setPerfumes(mockPerfumes.slice(0, 4));
+      setPerfumes([]);
     } finally {
       setLoading(false);
     }
@@ -491,41 +497,50 @@ export default function PerfumeQuiz() {
                      <p className="text-neutral-600">Baseado no seu perfil, separamos estas opções exclusivas para você.</p>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {perfumes.map((perfume, i) => (
-                      <motion.div
-                         initial={{ opacity: 0, y: 20 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         transition={{ delay: i * 0.1 }}
-                         key={perfume.id} 
-                         className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-neutral-100 flex flex-col"
-                      >
-                         <div className="aspect-square relative overflow-hidden bg-neutral-100">
-                           {perfume.image ? (
-                             <img src={perfume.image} alt={perfume.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                           ) : (
-                             <div className="w-full h-full flex items-center justify-center text-neutral-400">Sem Imagem</div>
-                           )}
-                           {perfume.score > 0 && perfume.score === Math.max(...perfumes.map(p => p.score)) && (
-                             <div className="absolute top-4 left-4 bg-primary text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                               Match #1
-                             </div>
-                           )}
-                         </div>
-                         <div className="p-6 flex flex-col flex-1">
-                           <h3 className="text-lg font-semibold text-neutral-900 mb-2 truncate" title={perfume.title}>{perfume.title}</h3>
-                           <div className="mt-auto">
-                              <p className="text-xl font-light text-primary mb-4">
-                                R$ {Number(perfume.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                              <Button render={<a href={perfume.link} target="_blank" rel="noopener noreferrer" />} className="w-full rounded-xl" variant="default">
-                                   Ver na Loja
-                              </Button>
+                  {perfumes.length === 0 ? (
+                    <div className="text-center py-10 bg-white rounded-3xl border border-neutral-100 shadow-sm">
+                      <p className="text-neutral-500 mb-6 text-lg">Nenhum produto compatível encontrado na sua loja.</p>
+                      <Button onClick={handleRestart} variant="outline" className="rounded-full">
+                        Tentar Novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {perfumes.map((perfume, i) => (
+                        <motion.div
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ delay: i * 0.1 }}
+                           key={perfume.id} 
+                           className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-neutral-100 flex flex-col"
+                        >
+                           <div className="aspect-square relative overflow-hidden bg-neutral-100">
+                             {perfume.image ? (
+                               <img src={perfume.image} alt={perfume.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                             ) : (
+                               <div className="w-full h-full flex items-center justify-center text-neutral-400">Sem Imagem</div>
+                             )}
+                             {perfume.score > 0 && perfume.score === Math.max(...perfumes.map(p => p.score)) && (
+                               <div className="absolute top-4 left-4 bg-primary text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                                 Match #1
+                               </div>
+                             )}
                            </div>
-                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                           <div className="p-6 flex flex-col flex-1">
+                             <h3 className="text-lg font-semibold text-neutral-900 mb-2 truncate" title={perfume.title}>{perfume.title}</h3>
+                             <div className="mt-auto">
+                                <p className="text-xl font-light text-primary mb-4">
+                                  R$ {Number(perfume.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                <Button render={<a href={perfume.link} target="_blank" rel="noopener noreferrer" />} className="w-full rounded-xl" variant="default">
+                                     Ver na Loja
+                                </Button>
+                             </div>
+                           </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12 pt-8 border-t border-neutral-200">
                     <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" className="text-neutral-600 hover:text-neutral-900 border-neutral-200 hover:bg-neutral-100 bg-white">

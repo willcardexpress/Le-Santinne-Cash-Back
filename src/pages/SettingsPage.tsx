@@ -86,7 +86,9 @@ export default function SettingsPage() {
 
       // 1. Tentar via API publica
       try {
-        const resPublic = await fetch(`https://${cleanDomain}/products.json?limit=1`);
+        const targetUrl = `https://${cleanDomain}/products.json?limit=1`;
+        const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const resPublic = await fetch(proxiedUrl);
         if (resPublic.ok) {
           const dataPublic = await resPublic.json();
           if (dataPublic?.products) {
