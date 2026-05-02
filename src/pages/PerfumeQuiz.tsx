@@ -225,9 +225,15 @@ export default function PerfumeQuiz() {
           // Attempt using public products.json API first because it doesn't require auth
           // Using a proxy to avoid CORS issues from the browser
           const targetUrl = `https://${cleanDomain}/products.json?limit=250`;
-          const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          let proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
           
-          const res = await fetch(proxiedUrl);
+          let res = await fetch(proxiedUrl);
+          
+          if (!res.ok) {
+            proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+            res = await fetch(proxiedUrl);
+          }
+
           if (res.ok) {
             const data = await res.json();
             if (data?.products) {
@@ -250,8 +256,14 @@ export default function PerfumeQuiz() {
         if (productsList.length === 0) {
           try {
             const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=100`;
-            const proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
-            const resWc = await fetch(proxiedWcUrl);
+            let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+            let resWc = await fetch(proxiedWcUrl);
+
+            if (!resWc.ok) {
+              proxiedWcUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(wcUrl)}`;
+              resWc = await fetch(proxiedWcUrl);
+            }
+
             if (resWc.ok) {
               const dataWc = await resWc.json();
               if (Array.isArray(dataWc)) {

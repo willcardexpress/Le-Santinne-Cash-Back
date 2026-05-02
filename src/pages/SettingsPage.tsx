@@ -87,8 +87,14 @@ export default function SettingsPage() {
       // 1. Tentar via API publica
       try {
         const targetUrl = `https://${cleanDomain}/products.json?limit=1`;
-        const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-        const resPublic = await fetch(proxiedUrl);
+        let proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        let resPublic = await fetch(proxiedUrl);
+
+        if (!resPublic.ok) {
+          proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          resPublic = await fetch(proxiedUrl);
+        }
+
         if (resPublic.ok) {
           const dataPublic = await resPublic.json();
           if (dataPublic?.products) {
@@ -103,8 +109,14 @@ export default function SettingsPage() {
       if (!success) {
         try {
           const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=1`;
-          const proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
-          const resWc = await fetch(proxiedWcUrl);
+          let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+          let resWc = await fetch(proxiedWcUrl);
+          
+          if (!resWc.ok) {
+            proxiedWcUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(wcUrl)}`;
+            resWc = await fetch(proxiedWcUrl);
+          }
+
           if (resWc.ok) {
             const dataWc = await resWc.json();
             if (Array.isArray(dataWc)) {
