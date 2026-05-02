@@ -217,62 +217,89 @@ export default function PerfumeQuiz() {
     try {
       let productsList: any[] = [];
 
-      if (shopifyConfig.domain && shopifyConfig.token) {
+      if (shopifyConfig.domain) {
         // Normalize domain just in case user pasted https://
         const cleanDomain = shopifyConfig.domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
         
-        // Fetch from Shopify
-        const query = `
-          {
-            products(first: 250) {
-              edges {
-                node {
-                  id
-                  title
-                  tags
-                  onlineStoreUrl
-                  handle
-                  images(first: 1) {
-                    edges {
-                      node {
-                        url
+        try {
+          // Attempt using public products.json API first because it doesn't require auth
+          const res = await fetch(`https://${cleanDomain}/products.json?limit=250`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.products) {
+              productsList = data.products.map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                image: p.images && p.images.length > 0 ? p.images[0].src : null,
+                price: p.variants && p.variants.length > 0 ? p.variants[0].price : 0,
+                link: `https://${cleanDomain}/products/${p.handle}`,
+                tags: p.tags || []
+              }));
+              console.log("Shopify public Fetch Result:", productsList.length, "products");
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching public products.json", e);
+        }
+
+        // Fallback to GraphQL if productsList is still empty and token exists
+        if (productsList.length === 0 && shopifyConfig.token) {
+          const query = `
+            {
+              products(first: 250) {
+                edges {
+                  node {
+                    id
+                    title
+                    tags
+                    onlineStoreUrl
+                    handle
+                    images(first: 1) {
+                      edges {
+                        node {
+                          url
+                        }
                       }
                     }
-                  }
-                  priceRange {
-                    minVariantPrice {
-                      amount
+                    priceRange {
+                      minVariantPrice {
+                        amount
+                      }
                     }
                   }
                 }
               }
             }
+          `;
+          
+          try {
+            const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Shopify-Storefront-Access-Token": shopifyConfig.token
+              },
+              body: JSON.stringify({ query })
+            });
+            
+            const data = await res.json();
+            console.log("Shopify GraphQL Fetch Result:", data); // Add for debugging
+            if (data?.data?.products?.edges) {
+              productsList = data.data.products.edges.map((e: any) => {
+                const p = e.node;
+                return {
+                  id: p.id,
+                  title: p.title,
+                  image: p.images?.edges[0]?.node?.url,
+                  price: p.priceRange?.minVariantPrice?.amount,
+                  link: p.onlineStoreUrl || `https://${cleanDomain}/products/${p.handle}`,
+                  tags: p.tags || []
+                };
+              });
+            }
+          } catch (e) {
+            console.error("Error fetching via GraphQL", e);
           }
-        `;
-        
-        const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Shopify-Storefront-Access-Token": shopifyConfig.token
-          },
-          body: JSON.stringify({ query })
-        });
-        
-        const data = await res.json();
-        console.log("Shopify Fetch Result:", data); // Add for debugging
-        if (data?.data?.products?.edges) {
-          productsList = data.data.products.edges.map((e: any) => {
-            const p = e.node;
-            return {
-              id: p.id,
-              title: p.title,
-              image: p.images?.edges[0]?.node?.url,
-              price: p.priceRange?.minVariantPrice?.amount,
-              link: p.onlineStoreUrl || `https://${cleanDomain}/products/${p.handle}`,
-              tags: p.tags || []
-            };
-          });
         }
       }
 

@@ -74,30 +74,52 @@ export default function SettingsPage() {
   }
 
   const testShopifyConnection = async () => {
-    if (!settings.shopifyDomain || !settings.shopifyAccessToken) {
-      toast.error("Preencha o domínio e o token antes de testar.");
+    if (!settings.shopifyDomain) {
+      toast.error("Preencha o domínio antes de testar.");
       return;
     }
     setTestingShopify(true);
     try {
       const cleanDomain = settings.shopifyDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      const query = `{ products(first: 1) { edges { node { id title } } } }`;
       
-      const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Storefront-Access-Token": settings.shopifyAccessToken
-        },
-        body: JSON.stringify({ query })
-      });
-      
-      const data = await res.json();
-      if (data.errors) {
-        throw new Error(data.errors[0]?.message || "Erro desconhecido. Verifique se o Token é da API Storefront (Headless).");
+      let success = false;
+
+      // 1. Tentar via API publica
+      try {
+        const resPublic = await fetch(`https://${cleanDomain}/products.json?limit=1`);
+        if (resPublic.ok) {
+          const dataPublic = await resPublic.json();
+          if (dataPublic?.products) {
+            success = true;
+          }
+        }
+      } catch (e) {
+        console.error("Erro na API pública", e);
+      }
+
+      // 2. Tentar via GraphQL se tiver token e falhou a publica
+      if (!success && settings.shopifyAccessToken) {
+        const query = `{ products(first: 1) { edges { node { id title } } } }`;
+        const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Storefront-Access-Token": settings.shopifyAccessToken
+          },
+          body: JSON.stringify({ query })
+        });
+        
+        const data = await res.json();
+        if (data.errors) {
+          throw new Error(data.errors[0]?.message || "Erro desconhecido. Verifique se o Token é da API Storefront (Headless).");
+        }
+        
+        if (data?.data?.products) {
+          success = true;
+        }
       }
       
-      if (data?.data?.products) {
+      if (success) {
         toast.success("Conexão com Shopify bem-sucedida! 🎉");
       } else {
         throw new Error("Resposta inválida da API do Shopify.");
@@ -232,7 +254,7 @@ export default function SettingsPage() {
       <Card className="rounded-xl border border-border shadow-sm">
         <CardHeader className="border-b border-border bg-neutral-50/50">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Integração Shopify (Para Perfumes/Quiz)</CardTitle>
-          <CardDescription className="text-xs">Configure o acesso à API do Shopify para buscar os perfumes.</CardDescription>
+          <CardDescription className="text-xs">Configure o domínio do Shopify para buscar os perfumes. O Token é opcional.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
            <div className="space-y-2">
@@ -246,7 +268,7 @@ export default function SettingsPage() {
             />
           </div>
            <div className="space-y-2">
-            <Label htmlFor="shopifyAccessToken" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Storefront Access Token</Label>
+            <Label htmlFor="shopifyAccessToken" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Storefront Access Token (Opcional)</Label>
             <Input 
               id="shopifyAccessToken" 
               type="password"
