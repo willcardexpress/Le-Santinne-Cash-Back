@@ -13,6 +13,7 @@ import { Copy, Check, Save, Code } from "lucide-react";
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingShopify, setTestingShopify] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [settings, setSettings] = useState({
     blingClientId: "",
@@ -71,6 +72,42 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedUrl(false), 2000);
     toast.success("URL do Webhook copiada!");
   }
+
+  const testShopifyConnection = async () => {
+    if (!settings.shopifyDomain || !settings.shopifyAccessToken) {
+      toast.error("Preencha o domínio e o token antes de testar.");
+      return;
+    }
+    setTestingShopify(true);
+    try {
+      const cleanDomain = settings.shopifyDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const query = `{ products(first: 1) { edges { node { id title } } } }`;
+      
+      const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": settings.shopifyAccessToken
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      const data = await res.json();
+      if (data.errors) {
+        throw new Error(data.errors[0]?.message || "Erro desconhecido. Verifique se o Token é da API Storefront (Headless).");
+      }
+      
+      if (data?.data?.products) {
+        toast.success("Conexão com Shopify bem-sucedida! 🎉");
+      } else {
+        throw new Error("Resposta inválida da API do Shopify.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro na conexão. Verifique o Domínio e Token.");
+    } finally {
+      setTestingShopify(false);
+    }
+  };
 
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   
@@ -221,14 +258,17 @@ export default function SettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-neutral-50/50 border-t border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6">
-          <p className="text-xs text-muted-foreground max-w-sm">Use o botão ao lado para obter o código e embutir (embed) o quiz na sua loja.</p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary/5">
-                <Code className="w-4 h-4 mr-2" /> Gerar Código do Quiz (Embed HTML)
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <Button variant="secondary" onClick={testShopifyConnection} disabled={testingShopify} className="w-full sm:w-auto">
+              {testingShopify ? "Testando..." : "Testar Conexão Shopify"}
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary/5 w-full sm:w-auto">
+                  <Code className="w-4 h-4 mr-2" /> Gerar Código do Quiz (Embed)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xl">
               <DialogHeader>
                 <DialogTitle>Incorporar Quiz na Shopify</DialogTitle>
                 <DialogDescription>
@@ -255,6 +295,7 @@ export default function SettingsPage() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </CardFooter>
       </Card>
 

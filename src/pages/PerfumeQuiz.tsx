@@ -224,7 +224,7 @@ export default function PerfumeQuiz() {
         // Fetch from Shopify
         const query = `
           {
-            products(first: 250, query: "status:active") {
+            products(first: 250) {
               edges {
                 node {
                   id
