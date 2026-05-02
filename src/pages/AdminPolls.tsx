@@ -36,7 +36,7 @@ export default function AdminPolls() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "polls"), (snapshot) => {
-      const p = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const p = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
       p.sort((a, b) => b.createdAt - a.createdAt);
       setPolls(p);
       setLoading(false);

@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -285,10 +285,8 @@ export default function SettingsPage() {
               {testingShopify ? "Testando..." : "Testar Conexão Shopify"}
             </Button>
             <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary/5 w-full sm:w-auto">
-                  <Code className="w-4 h-4 mr-2" /> Gerar Código do Quiz (Embed)
-                </Button>
+              <DialogTrigger className={buttonVariants({ variant: "outline", className: "border-primary text-primary hover:bg-primary/5 w-full sm:w-auto" })}>
+                <Code className="w-4 h-4 mr-2" /> Gerar Código do Quiz (Embed)
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl">
               <DialogHeader>

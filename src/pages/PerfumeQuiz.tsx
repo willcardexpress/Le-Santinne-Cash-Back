@@ -518,10 +518,8 @@ export default function PerfumeQuiz() {
                               <p className="text-xl font-light text-primary mb-4">
                                 R$ {Number(perfume.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
-                              <Button asChild className="w-full rounded-xl" variant="default">
-                                 <a href={perfume.link} target="_blank" rel="noopener noreferrer">
+                              <Button render={<a href={perfume.link} target="_blank" rel="noopener noreferrer" />} className="w-full rounded-xl" variant="default">
                                    Ver na Loja
-                                 </a>
                               </Button>
                            </div>
                          </div>
