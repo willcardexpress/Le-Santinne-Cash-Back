@@ -162,10 +162,10 @@ export default function PerfumeQuiz() {
       const docSnap = await getDoc(doc(db, "settings", "store"));
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.shopifyDomain && data.shopifyAccessToken) {
+        if (data.shopifyDomain) {
           setShopifyConfig({
             domain: data.shopifyDomain,
-            token: data.shopifyAccessToken
+            token: data.shopifyAccessToken || ""
           });
         }
       }
