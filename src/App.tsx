@@ -296,6 +296,7 @@ import CustomerPortal from "./pages/CustomerPortal";
 
 import AdminPolls from "./pages/AdminPolls";
 import Voting from "./pages/Voting";
+import PerfumeQuiz from "./pages/PerfumeQuiz";
 
 import CashbackSignup from "./pages/CashbackSignup";
 
@@ -305,6 +306,7 @@ export default function App() {
       <Routes>
         <Route path="/me" element={<CustomerPortal />} />
         <Route path="/votar" element={<Voting />} />
+        <Route path="/quiz" element={<PerfumeQuiz />} />
         <Route path="/cashback" element={<CashbackSignup />} />
         <Route path="/*" element={
           <AuthProvider>

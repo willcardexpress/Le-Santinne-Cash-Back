@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, Check, Save } from "lucide-react";
+import { Copy, Check, Save, Code } from "lucide-react";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,10 @@ export default function SettingsPage() {
     pointsMessage: "Olá {nome}, obrigado por seu Pedido #{numero_pedido}! Você comprou:\n{produtos_com_valores}\n\nValor total: R$ {valor_total}. Você ganhou {pontos} pontos! Seu saldo atual é {saldo} pontos.",
     thresholdMessage: "Uau, {nome}! Você alcançou {saldo} pontos. Que tal trocar por um desconto na loja física ou online?",
     autoSendWhatsapp: false,
+    replyAgentUrl: "",
+    replyAgentApiKey: "",
+    shopifyDomain: "",
+    shopifyAccessToken: "",
   });
 
   const webhookUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/api/bling/webhook`;
@@ -65,6 +70,25 @@ export default function SettingsPage() {
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2000);
     toast.success("URL do Webhook copiada!");
+  }
+
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
+  
+  // No AI Studio, a URL de dev ("ais-dev-") costuma bloquear embeds (iframe) por seguranca. 
+  // O link publico/compartilhado ("ais-pre-") tem menos restricoes.
+  let originUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  if (originUrl.includes("ais-dev-")) {
+    originUrl = originUrl.replace("ais-dev-", "ais-pre-");
+  }
+
+  const quizAppUrl = `${originUrl}/quiz`;
+  const embedCodeSnippet = `<div id="perfume-quiz-container">\n  <iframe src="${quizAppUrl}" width="100%" height="800px" style="border: none; max-width: 100%; border-radius: 12px; overflow: hidden;" title="Descubra sua Assinatura Olfativa"></iframe>\n</div>`;
+
+  const copyEmbed = () => {
+    navigator.clipboard.writeText(embedCodeSnippet);
+    setCopiedEmbed(true);
+    setTimeout(() => setCopiedEmbed(false), 2000);
+    toast.success("Código HTML copiado!");
   }
 
   if(loading) return <div>Carregando configurações...</div>;
@@ -168,6 +192,72 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card className="rounded-xl border border-border shadow-sm">
+        <CardHeader className="border-b border-border bg-neutral-50/50">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Integração Shopify (Para Perfumes/Quiz)</CardTitle>
+          <CardDescription className="text-xs">Configure o acesso à API do Shopify para buscar os perfumes.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+           <div className="space-y-2">
+            <Label htmlFor="shopifyDomain" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Domínio da Loja (ex: minhaloja.myshopify.com)</Label>
+            <Input 
+              id="shopifyDomain" 
+              placeholder="sua-loja.myshopify.com"
+              value={settings.shopifyDomain || ""}
+              className="bg-white border-border h-10"
+              onChange={e => setSettings({...settings, shopifyDomain: e.target.value})}
+            />
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="shopifyAccessToken" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Storefront Access Token</Label>
+            <Input 
+              id="shopifyAccessToken" 
+              type="password"
+              placeholder="Storefront API Token" 
+              value={settings.shopifyAccessToken || ""}
+              className="bg-white border-border h-10"
+              onChange={e => setSettings({...settings, shopifyAccessToken: e.target.value})}
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="bg-neutral-50/50 border-t border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6">
+          <p className="text-xs text-muted-foreground max-w-sm">Use o botão ao lado para obter o código e embutir (embed) o quiz na sua loja.</p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/5">
+                <Code className="w-4 h-4 mr-2" /> Gerar Código do Quiz (Embed HTML)
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Incorporar Quiz na Shopify</DialogTitle>
+                <DialogDescription>
+                  Copie o código abaixo e cole em uma "Página" ou num bloco de "Liquid/HTML Personalizado" na sua loja Shopify.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="bg-neutral-900 rounded-lg p-4 relative mt-2 group">
+                <pre className="text-[13px] font-mono text-neutral-200 whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-[300px]">
+                  {embedCodeSnippet}
+                </pre>
+                <Button 
+                  size="icon" 
+                  variant="secondary" 
+                  className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white border-0"
+                  onClick={copyEmbed}
+                >
+                  {copiedEmbed ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button onClick={copyEmbed} className="bg-black hover:bg-neutral-800 text-white shadow-lg">
+                  {copiedEmbed ? "Copiado!" : "Copiar Código"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardFooter>
+      </Card>
+
       <Card className="rounded-xl border border-border shadow-sm overflow-hidden">
         <CardHeader className="border-b border-border bg-neutral-50/50">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">Automação de Mensagens (WhatsApp/SMS)</CardTitle>
@@ -188,6 +278,28 @@ export default function SettingsPage() {
               <Label htmlFor="autoSendWhatsapp" className="font-semibold text-sm">Ativar envio automático de mensagens via WhatsApp</Label>
            </div>
            
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-neutral-100">
+             <div className="space-y-2">
+               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">URL da API (Reply Agent / Webhook)</Label>
+               <Input 
+                 placeholder="Ex: https://api.replyagent.com/send"
+                 value={settings.replyAgentUrl || ""}
+                 onChange={e => setSettings({...settings, replyAgentUrl: e.target.value})}
+                 className="bg-white border-border h-10"
+               />
+             </div>
+             <div className="space-y-2">
+               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Token / API Key (Opcional)</Label>
+               <Input 
+                 type="password"
+                 placeholder="Bearer Token se necessário"
+                 value={settings.replyAgentApiKey || ""}
+                 onChange={e => setSettings({...settings, replyAgentApiKey: e.target.value})}
+                 className="bg-white border-border h-10"
+               />
+             </div>
+           </div>
+
            <div className="space-y-2 pb-4 border-b border-neutral-100">
              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Alerta de Meta de Pontos</Label>
              <div className="flex items-center space-x-4 mb-2">

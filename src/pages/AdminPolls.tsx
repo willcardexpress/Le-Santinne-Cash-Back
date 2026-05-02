@@ -15,6 +15,7 @@ export default function AdminPolls() {
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [pollResults, setPollResults] = useState<any>({});
   const [votersList, setVotersList] = useState<any>({});
+  const [pollPages, setPollPages] = useState<Record<string, number>>({});
   
   const [endDate, setEndDate] = useState("");
   const [promoDate, setPromoDate] = useState("");
@@ -251,34 +252,51 @@ export default function AdminPolls() {
                   })}
                 </div>
 
-                {votersList[currentPoll.id] && votersList[currentPoll.id].length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="font-semibold mb-4 text-base text-neutral-700">Clientes que Votaram ({votersList[currentPoll.id].length}):</h3>
-                    <div className="bg-neutral-50 rounded-xl border border-neutral-200 max-h-60 overflow-y-auto">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-neutral-100 text-neutral-500 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Nome</th>
-                            <th className="px-4 py-3 font-medium">WhatsApp</th>
-                            <th className="px-4 py-3 font-medium">Produto Votado</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200">
-                          {votersList[currentPoll.id].map((voter: any, idx: number) => {
-                            const product = currentPoll.products.find((p:any) => p.id === voter.productId);
-                            return (
-                              <tr key={idx} className="hover:bg-neutral-100/50">
-                                <td className="px-4 py-3 font-medium text-neutral-900">{voter.customerName || "-"}</td>
-                                <td className="px-4 py-3 text-neutral-600">{voter.customerPhone}</td>
-                                <td className="px-4 py-3 text-neutral-600 truncate max-w-[150px]">{product?.name || "-"}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                {(() => {
+                  const pageSize = 20;
+                  const currentPage = pollPages[currentPoll.id] || 1;
+                  const voters = votersList[currentPoll.id] || [];
+                  const totalPages = Math.ceil(voters.length / pageSize) || 1;
+                  const paginatedVoters = voters.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+                  return voters.length > 0 ? (
+                    <div className="mt-8">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+                        <h3 className="font-semibold text-base text-neutral-700">Clientes que Votaram ({voters.length}):</h3>
+                        {totalPages > 1 && (
+                          <div className="flex items-center space-x-2">
+                            <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setPollPages(prev => ({...prev, [currentPoll.id]: currentPage - 1}))}>Anterior</Button>
+                            <span className="text-sm font-medium">Pág. {currentPage} de {totalPages}</span>
+                            <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => setPollPages(prev => ({...prev, [currentPoll.id]: currentPage + 1}))}>Próxima</Button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-neutral-50 rounded-xl border border-neutral-200">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-neutral-100 text-neutral-500 sticky top-0">
+                            <tr>
+                              <th className="px-4 py-3 font-medium">Nome</th>
+                              <th className="px-4 py-3 font-medium">WhatsApp</th>
+                              <th className="px-4 py-3 font-medium">Produto Votado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-200">
+                            {paginatedVoters.map((voter: any, idx: number) => {
+                              const product = currentPoll.products.find((p:any) => p.id === voter.productId);
+                              return (
+                                <tr key={idx} className="hover:bg-neutral-100/50">
+                                  <td className="px-4 py-3 font-medium text-neutral-900">{voter.customerName || "-"}</td>
+                                  <td className="px-4 py-3 text-neutral-600">{voter.customerPhone}</td>
+                                  <td className="px-4 py-3 text-neutral-600 truncate max-w-[150px]">{product?.name || "-"}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
               </CardContent>
               <CardFooter>
                 <Button onClick={() => stopPoll(currentPoll.id)} variant="destructive">Encerrar Votação</Button>
@@ -316,34 +334,51 @@ export default function AdminPolls() {
                     })}
                   </div>
                   
-                  {votersList[poll.id] && votersList[poll.id].length > 0 && (
-                    <div className="mt-8">
-                      <h3 className="font-semibold mb-4 text-base text-neutral-500">Histórico de Votos ({votersList[poll.id].length}):</h3>
-                      <div className="bg-neutral-50/50 rounded-xl border border-neutral-200 max-h-60 overflow-y-auto">
-                        <table className="w-full text-sm text-left opacity-80">
-                          <thead className="bg-neutral-100 text-neutral-500 sticky top-0">
-                            <tr>
-                              <th className="px-4 py-3 font-medium">Nome</th>
-                              <th className="px-4 py-3 font-medium">WhatsApp</th>
-                              <th className="px-4 py-3 font-medium">Produto Votado</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-neutral-200">
-                            {votersList[poll.id].map((voter: any, idx: number) => {
-                              const product = poll.products.find((p:any) => p.id === voter.productId);
-                              return (
-                                <tr key={idx} className="hover:bg-neutral-100">
-                                  <td className="px-4 py-3 font-medium text-neutral-700">{voter.customerName || "-"}</td>
-                                  <td className="px-4 py-3 text-neutral-500">{voter.customerPhone}</td>
-                                  <td className="px-4 py-3 text-neutral-500 truncate max-w-[150px]">{product?.name || "-"}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                  {(() => {
+                    const pageSize = 20;
+                    const currentPage = pollPages[poll.id] || 1;
+                    const voters = votersList[poll.id] || [];
+                    const totalPages = Math.ceil(voters.length / pageSize) || 1;
+                    const paginatedVoters = voters.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+                    return voters.length > 0 ? (
+                      <div className="mt-8">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+                          <h3 className="font-semibold text-base text-neutral-500">Histórico de Votos ({voters.length}):</h3>
+                          {totalPages > 1 && (
+                            <div className="flex items-center space-x-2">
+                              <Button size="sm" variant="outline" disabled={currentPage === 1} onClick={() => setPollPages(prev => ({...prev, [poll.id]: currentPage - 1}))}>Anterior</Button>
+                              <span className="text-sm font-medium">Pág. {currentPage} de {totalPages}</span>
+                              <Button size="sm" variant="outline" disabled={currentPage === totalPages} onClick={() => setPollPages(prev => ({...prev, [poll.id]: currentPage + 1}))}>Próxima</Button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="bg-neutral-50/50 rounded-xl border border-neutral-200">
+                          <table className="w-full text-sm text-left opacity-80">
+                            <thead className="bg-neutral-100 text-neutral-500 sticky top-0">
+                              <tr>
+                                <th className="px-4 py-3 font-medium">Nome</th>
+                                <th className="px-4 py-3 font-medium">WhatsApp</th>
+                                <th className="px-4 py-3 font-medium">Produto Votado</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-200">
+                              {paginatedVoters.map((voter: any, idx: number) => {
+                                const product = poll.products.find((p:any) => p.id === voter.productId);
+                                return (
+                                  <tr key={idx} className="hover:bg-neutral-100">
+                                    <td className="px-4 py-3 font-medium text-neutral-700">{voter.customerName || "-"}</td>
+                                    <td className="px-4 py-3 text-neutral-500">{voter.customerPhone}</td>
+                                    <td className="px-4 py-3 text-neutral-500 truncate max-w-[150px]">{product?.name || "-"}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : null;
+                  })()}
               </CardContent>
             </Card>
           ))}

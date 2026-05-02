@@ -14,6 +14,13 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // explicitly allow embedding in iframe
+  app.use((req, res, next) => {
+    res.removeHeader("X-Frame-Options");
+    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    next();
+  });
+
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
