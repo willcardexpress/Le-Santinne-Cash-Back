@@ -417,8 +417,16 @@ export default function PerfumeQuiz() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="text-center"
+              className="text-center w-full"
             >
+              <div className="relative w-full h-64 md:h-80 mb-10 rounded-3xl overflow-hidden shadow-sm border border-neutral-100">
+                <img 
+                  src="https://img.freepik.com/fotos-premium/um-close-de-um-perfumista-em-sua-mesa-procurando-uma-nova-fragrancia-foto-premium_237404-1799.jpg" 
+                  alt="Mesa de loja de perfumes com amostras e fitas olfativas" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-50/10 to-transparent"></div>
+              </div>
               <h1 className="text-4xl md:text-5xl font-serif text-neutral-900 mb-6">Descubra sua Assinatura Olfativa</h1>
               <p className="text-lg text-neutral-600 mb-10 max-w-lg mx-auto">
                 Responda a algumas perguntas rápidas e nosso especialista virtual irá recomendar as melhores fragrâncias que combinam perfeitamente com você ou com o momento especial.
