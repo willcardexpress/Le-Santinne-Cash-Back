@@ -90,8 +90,10 @@ export default function SettingsPage() {
         let proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         let resPublic = await fetch(proxiedUrl);
 
-        if (!resPublic.ok) {
-          proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
+
+        if (!resPublic.ok || !isJson(resPublic)) {
+          proxiedUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
           resPublic = await fetch(proxiedUrl);
         }
 
@@ -112,8 +114,10 @@ export default function SettingsPage() {
           let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
           let resWc = await fetch(proxiedWcUrl);
           
-          if (!resWc.ok) {
-            proxiedWcUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(wcUrl)}`;
+          const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
+
+          if (!resWc.ok || !isJson(resWc)) {
+            proxiedWcUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(wcUrl)}`;
             resWc = await fetch(proxiedWcUrl);
           }
 

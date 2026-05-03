@@ -229,8 +229,10 @@ export default function PerfumeQuiz() {
           
           let res = await fetch(proxiedUrl);
           
-          if (!res.ok) {
-            proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
+
+          if (!res.ok || !isJson(res)) {
+            proxiedUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
             res = await fetch(proxiedUrl);
           }
 
@@ -259,8 +261,10 @@ export default function PerfumeQuiz() {
             let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
             let resWc = await fetch(proxiedWcUrl);
 
-            if (!resWc.ok) {
-              proxiedWcUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(wcUrl)}`;
+            const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
+
+            if (!resWc.ok || !isJson(resWc)) {
+              proxiedWcUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(wcUrl)}`;
               resWc = await fetch(proxiedWcUrl);
             }
 
