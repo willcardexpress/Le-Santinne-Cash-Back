@@ -223,19 +223,12 @@ export default function PerfumeQuiz() {
         
         try {
           // Attempt using public products.json API first because it doesn't require auth
-          // Using a proxy to avoid CORS issues from the browser
+          // Using our own server proxy to bypass all CORS issues
           const targetUrl = `https://${cleanDomain}/products.json?limit=250`;
-          let proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          let proxiedUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
           
           let res = await fetch(proxiedUrl);
           
-          const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
-
-          if (!res.ok || !isJson(res)) {
-            proxiedUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-            res = await fetch(proxiedUrl);
-          }
-
           if (res.ok) {
             const data = await res.json();
             if (data?.products) {
@@ -244,8 +237,9 @@ export default function PerfumeQuiz() {
                 title: p.title,
                 image: p.images && p.images.length > 0 ? p.images[0].src : null,
                 price: p.variants && p.variants.length > 0 ? p.variants[0].price : 0,
-                link: `https://${cleanDomain}/products/${p.handle}`,
-                tags: p.tags ? (typeof p.tags === 'string' ? p.tags.split(',').map((t: string) => t.trim()) : p.tags) : []
+                link: `https://${cleanDomain.split('/')[0]}/products/${p.handle}`,
+                tags: p.tags ? (typeof p.tags === 'string' ? p.tags.split(',').map((t: string) => t.trim()) : p.tags) : [],
+                fullText: (p.body_html || p.title || "").toLowerCase()
               }));
               console.log("Shopify public Fetch Result:", productsList.length, "products");
             }
@@ -258,15 +252,8 @@ export default function PerfumeQuiz() {
         if (productsList.length === 0) {
           try {
             const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=100`;
-            let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+            let proxiedWcUrl = `/api/proxy?url=${encodeURIComponent(wcUrl)}`;
             let resWc = await fetch(proxiedWcUrl);
-
-            const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
-
-            if (!resWc.ok || !isJson(resWc)) {
-              proxiedWcUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(wcUrl)}`;
-              resWc = await fetch(proxiedWcUrl);
-            }
 
             if (resWc.ok) {
               const dataWc = await resWc.json();
@@ -309,6 +296,7 @@ export default function PerfumeQuiz() {
                     tags
                     onlineStoreUrl
                     handle
+                    descriptionHtml
                     images(first: 1) {
                       edges {
                         node {
@@ -328,7 +316,7 @@ export default function PerfumeQuiz() {
           `;
           
           try {
-            const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
+            const res = await fetch(`/api/proxy?url=${encodeURIComponent(`https://${cleanDomain.split('/')[0]}/api/2024-01/graphql.json`)}`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -348,7 +336,8 @@ export default function PerfumeQuiz() {
                   image: p.images?.edges[0]?.node?.url,
                   price: p.priceRange?.minVariantPrice?.amount,
                   link: p.onlineStoreUrl || `https://${cleanDomain}/products/${p.handle}`,
-                  tags: p.tags || []
+                  tags: p.tags || [],
+                  fullText: (p.descriptionHtml || p.title || "").toLowerCase()
                 };
               });
             }
@@ -363,7 +352,7 @@ export default function PerfumeQuiz() {
       }
 
       // Recommend System based on tags
-      const normalizeStr = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const normalizeStr = (str: any) => String(str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
       // Gather all tags selected
       const selectedTags = Object.values(finalAnswers)
@@ -374,7 +363,7 @@ export default function PerfumeQuiz() {
       // Score products
       const scoredProducts = productsList.map(p => {
         let score = 0;
-        const pTags = Array.isArray(p.tags) ? p.tags.map((t:string) => normalizeStr(t)) : [];
+        const pTags = Array.isArray(p.tags) ? p.tags.map((t:any) => normalizeStr(t)) : [];
         const fullTextStr = p.fullText ? normalizeStr(p.fullText) : "";
         
         selectedTags.forEach(st => {
@@ -395,7 +384,12 @@ export default function PerfumeQuiz() {
       // Optionally filter by score > 0 if you only want matches, but to avoid empty results we return top 6 anyway
       // since the site might not have perfectly tagged perfumes.
       const matchResults = scoredProducts.filter(p => p.score > 0);
-      const results = matchResults.length > 0 ? matchResults.slice(0, 6) : scoredProducts.slice(0, 6);
+      let results = matchResults.length > 0 ? matchResults.slice(0, 6) : scoredProducts.slice(0, 6);
+      
+      // Fallback if no matching products were found at all (API failed or list empty)
+      if (results.length === 0) {
+        results = mockPerfumes.slice(0, 6);
+      }
       
       setPerfumes(results);
 

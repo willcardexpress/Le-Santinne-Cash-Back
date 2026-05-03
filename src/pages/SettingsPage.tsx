@@ -87,15 +87,8 @@ export default function SettingsPage() {
       // 1. Tentar via API publica
       try {
         const targetUrl = `https://${cleanDomain}/products.json?limit=1`;
-        let proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        let proxiedUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
         let resPublic = await fetch(proxiedUrl);
-
-        const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
-
-        if (!resPublic.ok || !isJson(resPublic)) {
-          proxiedUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-          resPublic = await fetch(proxiedUrl);
-        }
 
         if (resPublic.ok) {
           const dataPublic = await resPublic.json();
@@ -111,16 +104,9 @@ export default function SettingsPage() {
       if (!success) {
         try {
           const wcUrl = `https://${cleanDomain}/wp-json/wc/store/products?per_page=1`;
-          let proxiedWcUrl = `https://corsproxy.io/?${encodeURIComponent(wcUrl)}`;
+          let proxiedWcUrl = `/api/proxy?url=${encodeURIComponent(wcUrl)}`;
           let resWc = await fetch(proxiedWcUrl);
           
-          const isJson = (res: Response) => res.headers.get('content-type')?.includes('application/json');
-
-          if (!resWc.ok || !isJson(resWc)) {
-            proxiedWcUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(wcUrl)}`;
-            resWc = await fetch(proxiedWcUrl);
-          }
-
           if (resWc.ok) {
             const dataWc = await resWc.json();
             if (Array.isArray(dataWc)) {
@@ -135,7 +121,7 @@ export default function SettingsPage() {
       // 2. Tentar via GraphQL se tiver token e falhou a publica
       if (!success && settings.shopifyAccessToken) {
         const query = `{ products(first: 1) { edges { node { id title } } } }`;
-        const res = await fetch(`https://${cleanDomain}/api/2024-01/graphql.json`, {
+        const res = await fetch(`/api/proxy?url=${encodeURIComponent(`https://${cleanDomain}/api/2024-01/graphql.json`)}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
