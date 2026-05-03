@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ArrowLeft } from "lucide-react";
+import { 
+  ChevronRight, ArrowLeft, User, Gift, Sun, Sunset, Moon, 
+  ThermometerSun, Snowflake, CloudRain, Briefcase, PartyPopper, 
+  Heart, Shirt, Sparkles, Zap, DollarSign, Crown, Droplets, Check
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const quizQuestions = [
@@ -10,52 +14,53 @@ const quizQuestions = [
     id: "for_who",
     question: "Para quem é o perfume?",
     options: [
-      { label: "Para mim mesmo(a)", value: "self" },
-      { label: "É para dar de presente", value: "gift" },
+      { label: "Para mim mesmo(a)", value: "self", icon: User, desc: "Descubra sua própria assinatura olfativa" },
+      { label: "É para dar de presente", value: "gift", icon: Gift, desc: "Ajudaremos você a escolher o presente perfeito" },
     ]
   },
   {
     id: "time_of_day",
     question: "Em qual período o perfume será mais usado?",
     options: [
-      { label: "Dia", value: "dia", tag: "dia" },
-      { label: "Tarde", value: "tarde", tag: "tarde" },
-      { label: "Noite", value: "noite", tag: "noite" },
+      { label: "Dia", value: "dia", tag: "dia", icon: Sun, desc: "Luminoso, fresco e contagiante" },
+      { label: "Tarde", value: "tarde", tag: "tarde", icon: Sunset, desc: "Aconchegante e envolvente" },
+      { label: "Noite", value: "noite", tag: "noite", icon: Moon, desc: "Elegância, mistério e sedução" },
     ]
   },
   {
     id: "weather",
     question: "Qual o clima predominante?",
     options: [
-      { label: "Calor (Dias quentes de verão)", value: "calor", tag: "calor" },
-      { label: "Frio (Dias e noites geladas)", value: "frio", tag: "frio" },
-      { label: "Ameno (Meia estação, equilibrado)", value: "ameno", tag: "ameno" },
+      { label: "Dias Quentes", value: "calor", tag: "calor", icon: ThermometerSun, desc: "Calor do verão, pede refrescancia" },
+      { label: "Dias Frios", value: "frio", tag: "frio", icon: Snowflake, desc: "Inverno e noites geladas" },
+      { label: "Clima Ameno", value: "ameno", tag: "ameno", icon: CloudRain, desc: "Meia estação, equilibrado e suave" },
     ]
   },
   {
     id: "occasion",
     question: "Qual a ocasião ideal para esse perfume?",
     options: [
-      { label: "Dia a dia / Casual", value: "casual", tag: "dia-a-dia" },
-      { label: "Encontro Romântico", value: "romantic", tag: "romantico" },
-      { label: "Festa / Balada", value: "party", tag: "festa" },
-      { label: "Trabalho / Escritório", value: "work", tag: "trabalho" },
+      { label: "Dia a dia / Casual", value: "casual", tag: "dia-a-dia", icon: Zap, desc: "Versátil para qualquer hora" },
+      { label: "Encontro Romântico", value: "romantic", tag: "romantico", icon: Heart, desc: "Para atrair e apaixonar" },
+      { label: "Festa / Balada", value: "party", tag: "festa", icon: PartyPopper, desc: "Para chegar de forma marcante" },
+      { label: "Trabalho / Escritório", value: "work", tag: "trabalho", icon: Briefcase, desc: "Profissional, sério e de atitude" },
     ]
   },
   {
     id: "clothes",
-    question: "Qual o seu estilo de roupa favorito? (Selecione até 2)",
+    question: "Qual o seu estilo de roupa favorito?",
+    subtitle: "Pode escolher mais de um estilo",
     multiple: 2,
     options: [
-      { label: "Casual / Básico", value: "casual", tag: "casual" },
-      { label: "Elegante / Clássico", value: "elegante", tag: "elegante" },
-      { label: "Despojado / Esportivo", value: "esportivo", tag: "esportivo" },
-      { label: "Ousado / Fashionista", value: "ousado", tag: "ousado" },
+      { label: "Casual / Básico", value: "casual", tag: "casual", icon: Shirt, desc: "Conforto acima de tudo" },
+      { label: "Elegante / Clássico", value: "elegante", tag: "elegante", icon: Briefcase, desc: "Sofisticação e alfaiataria" },
+      { label: "Esportivo", value: "esportivo", tag: "esportivo", icon: Droplets, desc: "Praticidade e performance" },
+      { label: "Fashionista", value: "ousado", tag: "ousado", icon: Sparkles, desc: "Ousadia e estilo único" },
     ]
   },
   {
     id: "family",
-    question: "Quais estilos de aroma você mais gosta?",
+    question: "Quais estilos de aroma você prefere?",
     subtitle: "Selecione quantos quiser — quanto mais você marcar, mais preciso fica.",
     multiple: 10,
     imageCards: true,
@@ -77,18 +82,18 @@ const quizQuestions = [
     id: "intensity",
     question: "Sobre a intensidade, qual você gosta mais?",
     options: [
-      { label: "Leve e Discreto", value: "leve", tag: "leve" },
-      { label: "Moderado e Equilibrado", value: "moderado", tag: "moderado" },
-      { label: "Forte e Marcante", value: "forte", tag: "marcante" },
+      { label: "Leve e Discreto", value: "leve", tag: "leve", icon: Droplets, desc: "Para não incomodar, sensação de banho tomado" },
+      { label: "Moderado", value: "moderado", tag: "moderado", icon: Sparkles, desc: "Na medida certa para o dia a dia" },
+      { label: "Forte e Marcante", value: "forte", tag: "marcante", icon: Crown, desc: "Deixa rasto por onde passa" },
     ]
   },
   {
     id: "priority",
     question: "O que é mais importante para você?",
     options: [
-      { label: "Performance (Fixação e Projeção)", value: "performance", tag: "performance" },
-      { label: "Custo Benefício", value: "custo_beneficio", tag: "custo-beneficio" },
-      { label: "Exclusividade / Diferenciação", value: "exclusividade", tag: "exclusivo" }
+      { label: "Performance", value: "performance", tag: "performance", icon: Zap, desc: "Duração alta na pele e forte projeção" },
+      { label: "Custo Benefício", value: "custo_beneficio", tag: "custo-beneficio", icon: DollarSign, desc: "Um ótimo perfume sem gastar muito" },
+      { label: "Exclusividade", value: "exclusividade", tag: "exclusivo", icon: Crown, desc: "Não quero ter o mesmo cheiro de todo mundo" }
     ]
   }
 ];
@@ -427,8 +432,8 @@ export default function PerfumeQuiz() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-50/10 to-transparent"></div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-serif text-neutral-900 mb-6">Descubra sua Assinatura Olfativa</h1>
-              <p className="text-lg text-neutral-600 mb-10 max-w-lg mx-auto">
+              <h1 className="text-2xl md:text-3xl font-serif text-neutral-900 mb-3">Descubra sua Assinatura Olfativa</h1>
+              <p className="text-sm md:text-base text-neutral-500 mb-8 max-w-md mx-auto leading-relaxed">
                 Responda a algumas perguntas rápidas e nosso especialista virtual irá recomendar as melhores fragrâncias que combinam perfeitamente com você ou com o momento especial.
               </p>
               <Button onClick={handleStart} size="lg" className="rounded-full px-8 py-6 text-lg tracking-wide hover:scale-105 transition-transform">
@@ -445,11 +450,22 @@ export default function PerfumeQuiz() {
               exit={{ opacity: 0, x: -20 }}
               className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-neutral-100"
             >
-              <div className="mb-8 flex justify-center items-center">
-                <div className="flex space-x-2">
-                  {quizQuestions.map((_, i) => (
-                    <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${i <= currentStep ? 'w-6 bg-primary' : 'w-2 bg-neutral-200'}`} />
-                  ))}
+              <div className="mb-8 md:mb-12">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                    Etapa {currentStep + 1} de {quizQuestions.length}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                    {Math.round(((currentStep + 1) / quizQuestions.length) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-neutral-100 h-2.5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((currentStep + 1) / quizQuestions.length) * 100}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="bg-primary h-full rounded-full"
+                  />
                 </div>
               </div>
 
@@ -486,6 +502,11 @@ export default function PerfumeQuiz() {
                          <span className={`relative z-10 block px-3 py-1.5 bg-white text-neutral-900 text-xs md:text-sm font-bold rounded-full shadow-lg transition-transform ${isSelected ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'group-hover:scale-105'}`}>
                            {opt.label}
                          </span>
+                         {isSelected && (
+                           <div className="absolute top-2 right-2 bg-primary text-white p-1 rounded-full shadow-md z-20">
+                             <Check className="w-3 h-3 md:w-4 md:h-4" />
+                           </div>
+                         )}
                       </button>
                     )
                   }
@@ -494,18 +515,34 @@ export default function PerfumeQuiz() {
                     <button
                       key={i}
                       onClick={() => handleSelect(quizQuestions[currentStep].id, opt)}
-                      className={`relative overflow-hidden p-4 md:p-6 rounded-2xl border-2 text-left transition-all group flex flex-col justify-center ${
+                      className={`relative overflow-hidden p-5 md:p-6 rounded-2xl border-2 text-left transition-all group flex flex-col justify-center min-h-[100px] ${
                         isSelected 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-neutral-100 hover:border-primary hover:bg-primary/5'
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.01]' 
+                          : 'border-neutral-100 bg-white hover:border-primary/40 hover:shadow-md'
                       }`}
                     >
-                      {opt.image && (
-                        <div className="absolute inset-0 z-0 opacity-20 group-hover:opacity-40 transition-opacity">
-                          <img src={opt.image} alt={opt.label} className="w-full h-full object-cover" />
+                      <div className="flex items-center gap-4 w-full">
+                        {opt.icon && (
+                          <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-500 group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                            <opt.icon className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                           <span className={`block text-base md:text-lg font-semibold tracking-tight transition-colors ${isSelected ? 'text-primary' : 'text-neutral-800 group-hover:text-primary'}`}>{opt.label}</span>
+                           {opt.desc && (
+                             <span className="block mt-1 text-sm text-neutral-500 leading-snug">{opt.desc}</span>
+                           )}
                         </div>
-                      )}
-                      <span className={`relative z-10 block text-lg font-medium drop-shadow-sm ${isSelected ? 'text-primary' : 'text-neutral-800 group-hover:text-primary'}`}>{opt.label}</span>
+                        {isMultiple ? (
+                           <div className={`shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-primary bg-primary text-white' : 'border-neutral-300 group-hover:border-primary/50'}`}>
+                              {isSelected && <Check className="w-4 h-4" />}
+                           </div>
+                        ) : (
+                           <div className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-primary bg-primary text-white' : 'border-neutral-300 group-hover:border-primary/50'}`}>
+                              {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                           </div>
+                        )}
+                      </div>
                     </button>
                   );
                 })}
